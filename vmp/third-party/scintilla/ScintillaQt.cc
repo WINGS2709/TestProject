@@ -8,6 +8,12 @@
 // Additions Copyright (c) 2011 Archaeopteryx Software, Inc. d/b/a Wingware
 // ScintillaQt.cpp - Qt specific subclass of ScintillaBase
 
+#include <QTextCodec>
+#include <QScrollBar>
+#include <QTimer>
+#include <QDrag>
+#include <QClipboard>
+#include <QMimeData>
 #include "PlatQt.h"
 #include "ScintillaQt.h"
 #ifdef SCI_LEXER

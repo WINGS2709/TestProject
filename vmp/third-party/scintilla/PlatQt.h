@@ -7,6 +7,24 @@
 //
 // Additions Copyright (c) 2011 Archaeopteryx Software, Inc. d/b/a Wingware
 // Scintilla platform layer for Qt
+#include <QPaintDevice>
+#include <QFont>
+#include <QColor>
+#include <QRect>
+#include <QPixmap>
+#include <qpainter.h>
+#include <QListWidget>
+#include <qtextcodec.h>
+#include <qtextlayout.h>
+#include <qpaintdevice.h>
+#include <QPaintEngine>
+#include <qdesktopwidget.h>
+#include <qapplication.h>
+#include <QMenu>
+#include <QLibrary>
+#include <QMessageBox>
+#include <QTime>
+#include "Platform.h"
 
 #ifndef PLATQT_H
 #define PLATQT_H

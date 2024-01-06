@@ -12,6 +12,13 @@
 
 #include "../../VMProtect/moc/moc_ScintillaEditBase.cc"
 
+#include <QScrollBar>
+#include <QTextFormat>
+#include <QClipboard>
+#include "ScintillaEditBase.h"
+#include "ScintillaQt.h"
+#include "PlatQt.h"
+
 #ifdef SCI_NAMESPACE
 using namespace Scintilla;
 #endif

@@ -36,6 +36,7 @@
 #include "Editor.h"
 #include "ScintillaBase.h"
 #include "CaseConvert.h"
+#include "qclipboard.h"
 
 #ifdef SCI_LEXER
 #include "SciLexer.h"

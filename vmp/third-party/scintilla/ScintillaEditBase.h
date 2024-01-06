@@ -12,6 +12,14 @@
 #ifndef SCINTILLAEDITBASE_H
 #define SCINTILLAEDITBASE_H
 
+#include <QTime>
+#include <QObject>
+#include <vector>
+#include <QAbstractScrollArea>
+#include "qmimedata.h"
+#include "ScintillaQt.h"
+#include "qwidget.h"
+
 #ifdef SCI_NAMESPACE
 namespace Scintilla {
 #endif

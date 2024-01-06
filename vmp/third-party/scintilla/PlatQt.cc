@@ -10,6 +10,7 @@
 
 #include "PlatQt.h"
 #include "FontQuality.h"
+#include "ScintillaQt.h"
 
 #ifdef SCI_NAMESPACE
 namespace Scintilla {

@@ -17331,7 +17331,7 @@ void IntelObfuscation::AddRestoreStack(size_t to_index)
 		AddCommand(cmLea, IntelOperand(otRegistr, cpu_address_size, regESP), IntelOperand(otMemory | otRegistr | otValue, cpu_address_size, regESP, value));
 }
 
-void IntelObfuscation::Compile(IntelFunction* func, size_t index, size_t end_index, bool for_virtualization)
+void IntelObfuscation::Compile(IntelFunction *func, size_t index, size_t end_index ,bool for_virtualization)
 {
 	func_ = func;
 	flags_.clear();
