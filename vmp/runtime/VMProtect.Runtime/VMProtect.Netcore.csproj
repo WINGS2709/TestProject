@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.1;netcoreapp3.0;net20;net40</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netcoreapp3.0;net20;net40;net48</TargetFrameworks>
     <Platforms>AnyCPU;x64</Platforms>	
+	<CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net20' Or '$(TargetFramework)' == 'net40'">
