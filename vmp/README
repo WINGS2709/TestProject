@@ -1,10 +1,1 @@
-VMProtect project
------------------
-
-Building
-
-	POSIX:
-		$ ./build.sh
-
-	Windows:
-		> build.bat
+学习VMP源码
