@@ -261,11 +261,19 @@ bool WINAPI ExportedIsValidImageCRC()
 	return res;
 }
 
+//************************************     
+// 函数名称: ExportedIsVirtualMachinePresent     
+// 函数说明：检测虚拟机环境  
+// 参考网址：
+// 作成日期：2023/1/7    
+// 返 回 值: bool WINAPI				返回FALSE表示虚拟机环境，返回TRUE表示非虚拟机环境   
+//************************************     
 bool WINAPI ExportedIsVirtualMachinePresent()
 {
 	// hardware detection
 	int cpu_info[4];
 	__cpuid(cpu_info, 1);
+	// 该特殊指令是 cpuid。检测原理是赋eax 为1，执行 cpuid 后，如果ecx 的31st 位为 0，表示真机，否则为虚拟机
 	if ((cpu_info[2] >> 31) & 1) {
 #ifndef VMP_GNU
 		// check Hyper-V root partition
@@ -288,13 +296,18 @@ bool WINAPI ExportedIsVirtualMachinePresent()
 	uint8_t mem_val;
 	__try {
 		// set T flag
-		__writeeflags(__readeflags() | 0x100);
-		 val = __rdtsc();
-		 __nop();
+		__writeeflags(__readeflags() | 0x100);					
+		 val = __rdtsc();										// TF置1 执行一条指令然后触发异常					
+		 __nop();												// 此时异常地址指向这里
+		 // 调试状态走到这里，设置调试标记（暗桩）
 		 loader_data->set_is_debugger_detected(true);
+		 // 如果存在调试器，则不会将控制权交给异常处理程序
 	} __except(mem_val = *static_cast<uint8_t *>((GetExceptionInformation())->ExceptionRecord->ExceptionAddress), EXCEPTION_EXECUTE_HANDLER) {
 		if (mem_val != 0x90)
+		{
+			// 非调试状态直接退出
 			return true;
+		}
 	}
 
 	__try {
@@ -302,9 +315,12 @@ bool WINAPI ExportedIsVirtualMachinePresent()
 		__writeeflags(__readeflags() | 0x100);
 		__cpuid(cpu_info, 1);
 		__nop();
+		// 调试状态走到这里，设置调试标记（暗桩）
 		loader_data->set_is_debugger_detected(true);
+		// 如果存在调试器，则不会将控制权交给异常处理程序
 	} __except(mem_val = *static_cast<uint8_t *>((GetExceptionInformation())->ExceptionRecord->ExceptionAddress), EXCEPTION_EXECUTE_HANDLER) {
 		if (mem_val != 0x90)
+			// 非调试状态直接退出
 			return true;
 	}
 #endif
@@ -392,6 +408,7 @@ bool WINAPI ExportedIsVirtualMachinePresent()
 	if (is_found)
 		return true;
 
+	// 判断有没有沙盘的DLL注入进来
 	if (GetModuleHandleA(VMProtectDecryptStringA("sbiedll.dll")))
 		return true;
 #endif
@@ -399,8 +416,17 @@ bool WINAPI ExportedIsVirtualMachinePresent()
 	return false;
 }
 
+//************************************     
+// 函数名称: ExportedIsDebuggerPresent     
+// 函数说明：检测调试环境 
+// 参考网址：https://anti-debug.checkpoint.com/techniques/debug-flags.html
+// 作成日期：2023/1/8  
+// 返 回 值: bool WINAPI				返回TRUE表示调试环境，返回FALSE表示非调试环境  
+// 参    数: bool check_kernel_mode     TRUE表示内核模式，FALSE表示应用模式
+//************************************ 
 bool WINAPI ExportedIsDebuggerPresent(bool check_kernel_mode)
 {
+	// 检查调试标记
 	if (loader_data->is_debugger_detected())
 		return true;
 
@@ -761,9 +787,15 @@ bool WINAPI ExportedIsDebuggerPresent(bool check_kernel_mode)
 #else
 	PEB32 *peb = reinterpret_cast<PEB32 *>(__readfsdword(0x30));
 #endif
+	/*
+	*	备注：检查调试状态，使用kernel32!IsDebuggerPresent()内部就是PEB->BeingDebugged
+	*   参考：https://anti-debug.checkpoint.com/techniques/debug-flags.html
+	*		  1.1. IsDebuggerPresent() 
+	*/
 	if (peb->BeingDebugged)
 		return true;
 
+	// 检查DR调试寄存器（4个硬件断点）
 	{
 		size_t drx;
 		uint64_t val;
@@ -782,6 +814,12 @@ bool WINAPI ExportedIsDebuggerPresent(bool check_kernel_mode)
 		}
 	}
 
+	/*
+	*	备注：通过NtQueryInformationProcess检查调试端口（ProcessDebugPort）、调试对象句柄（ProcessDebugObjectHandle）
+	*	参考：https://anti-debug.checkpoint.com/techniques/debug-flags.html
+	*	      1.3.2. 进程调试标志
+	*		  1.3.3. 进程调试对象句柄 
+	*/
 	typedef NTSTATUS(NTAPI tNtQueryInformationProcess)(HANDLE ProcessHandle, PROCESSINFOCLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
 	if (sc_query_information_process) {
 		HANDLE debug_object;
@@ -812,10 +850,17 @@ bool WINAPI ExportedIsDebuggerPresent(bool check_kernel_mode)
 		tNtQuerySystemInformation *nt_query_system_information = &NtQuerySystemInformation;
 #else
 		tNtQuerySystemInformation *nt_query_system_information = reinterpret_cast<tNtQuerySystemInformation *>(InternalGetProcAddress(ntdll, VMProtectDecryptStringA("NtQuerySystemInformation")));
-		if (nt_query_system_information) {
+		if (nt_query_system_information) 
+		{
 #endif
 			SYSTEM_KERNEL_DEBUGGER_INFORMATION info;
 			NTSTATUS status = nt_query_system_information(SystemKernelDebuggerInformation, &info, sizeof(info), NULL);
+			/*
+			*	备注：通过NtQuerySystemInformation检查KdDebuggerEnabled和KdDebuggerNotPresent，腾讯TP反双机调试会检查这两个字段
+			*   参考：https://anti-debug.checkpoint.com/techniques/debug-flags.html
+			*	      1.6. NtQuerySystemInformation()
+			*
+			*/
 			if (NT_SUCCESS(status) && info.DebuggerEnabled && !info.DebuggerNotPresent)
 				return true;
 
@@ -829,6 +874,7 @@ bool WINAPI ExportedIsDebuggerPresent(bool check_kernel_mode)
 					for (size_t i = 0; i < buffer->Count && !is_found; i++) {
 						SYSTEM_MODULE_ENTRY *module_entry = &buffer->Module[i];
 						char module_name[11];
+						// 扫描以下"sice.sys"、"siwvid.sys"、"ntice.sys"、"iceext.sys"和"syser.sys"调试器模块
 						for (size_t j = 0; j < 5; j++) {
 							switch (j) {
 							case 0:
